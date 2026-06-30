@@ -54,6 +54,10 @@ def parse_int(val):
     return int(s) if s else 0
 
 
+def clean_text(val):
+    return re.sub(r"[\r\n\t]+", " ", str(val)).strip()
+
+
 def normalize_tipo(raw):
     raw = str(raw).strip()
     if "Reel" in raw:
@@ -183,8 +187,8 @@ def main():
             "compartilhamentos": parse_int(r.get("Compartilhamentos", 0)),
             "salvamentos": parse_int(r.get("Salvamentos", 0)),
             "alcance": parse_int(r.get("Alcance", 0)),
-            "desc": str(r.get("Descrição", "")).strip(),
-            "link": str(r.get("Link permanente", "")).strip(),
+            "desc": clean_text(r.get("Descrição", "")),
+            "link": clean_text(r.get("Link permanente", "")),
         }
         posts_by_month.setdefault(mk, []).append(post)
 
@@ -286,7 +290,7 @@ def main():
 
     html = re.sub(
         r"// ── DATA ──.*?(?=\s*\n\s*let curMonths=)",
-        data_block,
+        lambda m: data_block,
         html,
         flags=re.DOTALL,
     )
