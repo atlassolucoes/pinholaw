@@ -36,8 +36,10 @@ def parse_date(val):
     if not val or str(val).strip() == "":
         return None
     val = str(val).strip()
-    for fmt in ("%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M", "%Y-%m-%d %H:%M:%S",
-                "%Y-%m-%d %H:%M", "%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%d/%m/%y"):
+    for fmt in ("%m/%d/%Y %H:%M:%S", "%m/%d/%Y %H:%M", "%m/%d/%Y",
+                "%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M",
+                "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M",
+                "%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%d/%m/%y"):
         try:
             return datetime.strptime(val, fmt).strftime("%Y-%m-%d")
         except ValueError:
@@ -157,7 +159,9 @@ def main():
 
     posts_by_month = {}
     for r in raw_feed:
-        date_str = parse_date(r.get("Data", ""))
+        # Instagram export uses "Horário de publicação" for the date; fall back to "Data"
+        date_val = r.get("Horário de publicação", "") or r.get("Data", "")
+        date_str = parse_date(date_val)
         if not date_str:
             continue
         mk = month_key(date_str)
@@ -209,7 +213,8 @@ def main():
 
     stories_by_month = {}
     for r in raw_stories:
-        date_str = parse_date(r.get("Data", ""))
+        date_val = r.get("Horário de publicação", "") or r.get("Data", "")
+        date_str = parse_date(date_val)
         if not date_str:
             continue
         mk = month_key(date_str)
