@@ -268,6 +268,46 @@ def main():
         mnames[mk] = PT_SHORT[m]
         prev[mk]   = months[i - 1] if i > 0 else None
 
+    # ── MONTH BUTTONS + PERIOD DROPDOWN (gerados a partir dos meses reais) ────
+    current_month_key = datetime.utcnow().strftime("%Y-%m")
+
+    def btn_label(mk):
+        return mnames[mk] + ("*" if mk == current_month_key else "")
+
+    month_btns_html = "\n      ".join(
+        f'<button class="month-btn{" active" if mk == months[-1] else ""}" '
+        f'onclick="setMonth(\'{mk}\',this)">{btn_label(mk)}</button>'
+        for mk in months
+    )
+
+    period_options = ['<option value="">— Selecione —</option>']
+
+    quarters = {}
+    for mk in months:
+        y, m = int(mk[:4]), int(mk[5:7])
+        quarters.setdefault((y, (m - 1) // 3), []).append(mk)
+    for (y, q), qmonths in sorted(quarters.items()):
+        if len(qmonths) < 2:
+            continue
+        period_options.append(
+            f'<option value="{",".join(qmonths)}">{q + 1}º Trimestre '
+            f'({mnames[qmonths[0]]}–{mnames[qmonths[-1]]})</option>'
+        )
+
+    if len(months) >= 2:
+        period_options.append(
+            f'<option value="{",".join(months)}">Ano completo '
+            f'({mnames[months[0]]}–{mnames[months[-1]]})</option>'
+        )
+
+    for i in range(0, len(months) - 1, 2):
+        pair = months[i:i + 2]
+        period_options.append(
+            f'<option value="{",".join(pair)}">{mnames[pair[0]]} + {mnames[pair[1]]}</option>'
+        )
+
+    period_options_html = "\n        ".join(period_options)
+
     # ── INJECT INTO index.html ────────────────────────────────────────────────
     html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
     with open(html_path, "r", encoding="utf-8") as f:
@@ -300,6 +340,22 @@ def main():
             r'let curMonths=\["[^"]*"\];',
             f'let curMonths=["{months[-1]}"];',
             html,
+        )
+
+        html = re.sub(
+            r'(<div class="month-btns" id="month-btns">)(.*?)(</div>)',
+            lambda m: m.group(1) + "\n      " + month_btns_html + "\n    " + m.group(3),
+            html,
+            count=1,
+            flags=re.DOTALL,
+        )
+
+        html = re.sub(
+            r'(<select class="period-select" id="period-select" onchange="setPeriod\(this\.value\)">)(.*?)(</select>)',
+            lambda m: m.group(1) + "\n        " + period_options_html + "\n      " + m.group(3),
+            html,
+            count=1,
+            flags=re.DOTALL,
         )
 
     with open(html_path, "w", encoding="utf-8") as f:
